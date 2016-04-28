@@ -82,6 +82,18 @@ public class Text {
     	return parent.type;
     }
     
+    public Text clone() {
+    	Text clone = new Text();
+    	clone.setTextContent(getTextContent());
+    	clone.setStyle(getStyle());
+    	
+    	return clone;
+    }
+    
+    public void removeNewline() {
+    	textContent = textContent.replaceAll("/n|/n/r", " ");
+    }
+    
     public void accept(ITextVisitor visitor) {
     	visitor.visit(this);
     }

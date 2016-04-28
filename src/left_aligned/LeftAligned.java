@@ -3,62 +3,89 @@
 package left_aligned;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import org.w3c.dom.*;
-import javax.xml.transform.stream.StreamResult;
+import java.lang.reflect.Method;
 
 public class LeftAligned {
-	private Document fdxDocument;
-    public boolean makeFDX(String wordPath) {
-    	return makeFDX(new File(wordPath));
+	private ScriptDocument sDocument;
+	
+	 public boolean make(FileType fileType, File file) {
+	   	 switch (fileType) {
+	   	 	case FDX:
+	   	 		return makeFromFDX(file);
+	   	 	case DOCX:
+	   	 		return makeFromWord(file);
+	   	 	default:
+	   	 		return false;
+	   	 }		 
+	   }
+	
+    public boolean makeFromWord(String wordPath) {
+    	return makeFromWord(new File(wordPath));
     }
     
-    public boolean makeFDX(File wordFile) {
-    	ReadWord rw;
+    public boolean makeFromWord(File wordFile) {
     	try {
-    		rw = new ReadWord(wordFile);
+    		ReadWord rw = new ReadWord(wordFile);
+    		sDocument = rw.getScriptDocument();
     	} catch (Exception exp) {
     		exp.printStackTrace();
     		return false;
     	}
-    	
-        FDXModel fdm = new FDXModel();
-        ArrayList<SceneGroup> shotGroups = rw.document.getMembers();
-        
-        for (SceneGroup sGroup : shotGroups) {    
-            for (ElementGroup eGroup : sGroup.getMembers()) {                
-                for (ScriptElement sElement : eGroup.getMembers())
-                fdm.appendElement(sElement);
-            }
-        }
-        
-        fdxDocument = fdm.document;
         
         return true;
     }
     
-    public boolean writeFDX(String filePath) throws IOException {
-    	return writeFDX(new File(filePath));
+    public boolean makeFromFDX(String fdxPath) {
+    	return makeFromFDX(new File(fdxPath));
     }
     
-    public boolean writeFDX(File file) throws IOException {
+    public boolean makeFromFDX(File fdxFile) {
     	try {
-    		TransformerFactory txf = TransformerFactory.newInstance();
-    		Transformer tx = txf.newTransformer();
-    		DOMSource src = new DOMSource(fdxDocument); 
-            StreamResult res = new StreamResult(file);
-            tx.transform(src, res);
-        
+    		 ReadFDX rf = new ReadFDX(fdxFile);
+    		 sDocument = rf.getScriptDocument();
     	} catch (Exception exp) {
-            throw new IOException("LeftAligned: Bad output file", exp);
-        }      
+    		exp.printStackTrace();
+    		return false;
+    	}
         
         return true;
+    }
+    
+    public boolean write(FileType fileType, File file) {
+   	 switch (fileType) {
+   	 	case FDX:
+   	 		return writeFDX(file);
+   	 	case DOCX:
+   	 		return writeWord(file);
+   	 	default:
+   	 		return false;
+   	 }		 
+   }
+    
+    public boolean writeFDX(String fdxFileName) {
+    	return writeFDX(new File(fdxFileName));
+    }
+    
+    public boolean writeFDX(File fdxFile) {
+    	FDXWriter fw = new FDXWriter(sDocument);
+    	
+    	return fw.write(fdxFile);
+    }
+    
+    public boolean writeWord(String fdxFileName) {
+    	return writeWord(new File(fdxFileName));
+    }
+    
+    public boolean writeWord(File wordFile) {
+    	try {
+    		WordWriter ww = new WordWriter(sDocument);
+    		ww.write(wordFile);
+	   	} catch (Exception exp) {
+	   		exp.printStackTrace();
+	   		return false;
+	   	}
+       
+       return true;
     }
     
     public boolean fileExists(File file) {

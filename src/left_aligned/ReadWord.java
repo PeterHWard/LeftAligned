@@ -11,13 +11,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 public class ReadWord {
-    public ScriptDocument document;
+    private ScriptDocument sDocument;
     private XWPFDocument wDocument;
     private String[] elementsGroupTypes = {
                                         "Scene Heading Group",
@@ -37,35 +38,41 @@ public class ReadWord {
                                         "General"          };
      
     public ReadWord(File file) throws IOException {
+    	FileInputStream wordFile;
         try {
-            FileInputStream wordFile = new FileInputStream(file.getAbsolutePath());
-            exec(new XWPFDocument(wordFile));
-            wordFile.close();
+            wordFile = new FileInputStream(file.getAbsolutePath());            
             
         } catch (Exception exp) {
         	throw new IOException("ReadWord: Input file unreadable", exp);
         }
+        
+        exec(new XWPFDocument(wordFile));
+        wordFile.close();
     }
 
 	public ReadWord(XWPFDocument wDocument) {
     	exec(wDocument);
     }
+	
+	public ScriptDocument getScriptDocument() {
+		return sDocument;
+	}
     
     private void exec(XWPFDocument wDocument) {
     	this.wDocument = wDocument;
     	walkDocument();
-        document.normalize();
-        document.trimTextContent();
+        sDocument.normalize();
+        sDocument.trimTextContent();
     }
  
     private void walkDocument() {
-    	document = new ScriptDocument();
-        ArrayList<ElementGroup> elementGroups = makeElementGroups();
+    	sDocument = new ScriptDocument();
+        ArrayList<ElementGroup> elementGroups = batchMakeElementGroups();
         SceneGroup sceneGroup = new SceneGroup();
         
         for (ElementGroup eGroup : elementGroups) {  
             if (eGroup.type == "Scene Heading Group") {
-            	document.addMember(sceneGroup);
+            	sDocument.addMember(sceneGroup);
             	//System.out.println(sceneGroup.getTextContent()); // FIXME
                 sceneGroup = new SceneGroup();
             }
@@ -74,10 +81,10 @@ public class ReadWord {
             //System.out.println(sceneGroup.getTextContent()); // FIXME
         }
         
-        document.addMember(sceneGroup);
+        sDocument.addMember(sceneGroup);
     }
     
-    private ArrayList<ElementGroup> makeElementGroups() {
+    private ArrayList<ElementGroup> batchMakeElementGroups() {
     	List<XWPFParagraph> paragraphs = wDocument.getParagraphs();
     	SharedState sState = new SharedState();
     	int idx = 0;
@@ -86,9 +93,7 @@ public class ReadWord {
         	if (para.getText().trim().length() == 0) continue;
         	
         	sState.stack.add(null);
-        	MakeElementGroup wkr = new MakeElementGroup(	para,
-        													sState,
-        													idx++);
+        	MakeElementGroup wkr = new MakeElementGroup(para, sState, idx++);
         	
         	try {
         		wkr.start();
@@ -119,7 +124,11 @@ public class ReadWord {
     	
     	public void run() {
     		ScriptElement trElem = makeTextRuns(sourceParagraph);
+            if (sourceParagraph.getAlignment() == ParagraphAlignment.CENTER) {
+            	trElem.setAlignment("Center");
+            }
             String elemType = getElementType(trElem);
+            
             sharedState.stack.set(idx, makeElementGroup(elemType, trElem)); 
     	}
     	
@@ -129,25 +138,24 @@ public class ReadWord {
             
             int startIndex = 0;
             for (XWPFRun wordRun : wordRuns) {
-                // FIXME - normalize
-           	 if (wordRun.getText(0) == null) break;
-           	 
-                Text textRun = new Text();
-                String textContent = wordRun.getText(0);        
-                if (wordRun.isCapitalized()) textContent = textContent.toUpperCase();
-                textRun.setTextContent(textContent);
-                textRun._startIndex = startIndex;
-                textRun._endIndex = startIndex + textContent.length();             
-                
-                ArrayList<String> styles = new ArrayList<String>();
-                if (wordRun.isBold()) styles.add("Bold");
-                if (wordRun.isItalic()) styles.add("Italic");
-                if (wordRun.getUnderline() 
-                   != UnderlinePatterns.NONE) styles.add("Underline");
-                
-                if (styles.size() > 0) textRun.setStyle(styles.toArray(new String[styles.size()]));
-                textRuns.addTextRun(textRun);
-                startIndex = textRun._endIndex;
+	           	 if (wordRun.getText(0) == null) continue;
+	           	 
+	                Text textRun = new Text();
+	                String textContent = wordRun.getText(0);        
+	                if (wordRun.isCapitalized()) textContent = textContent.toUpperCase();
+	                textRun.setTextContent(textContent);
+	                textRun._startIndex = startIndex;
+	                textRun._endIndex = startIndex + textContent.length();             
+	                
+	                ArrayList<String> styles = new ArrayList<String>();
+	                if (wordRun.isBold()) styles.add("Bold");
+	                if (wordRun.isItalic()) styles.add("Italic");
+	                if (wordRun.getUnderline() 
+	                   != UnderlinePatterns.NONE) styles.add("Underline");
+	                
+	                if (styles.size() > 0) textRun.setStyle(styles.toArray(new String[styles.size()]));
+	                textRuns.addTextRun(textRun);
+	                startIndex = textRun._endIndex;
             }
             
             return textRuns;
@@ -218,7 +226,8 @@ public class ReadWord {
        }
        
        private boolean isTransition(String text, ParagraphState pState) {
-           if (hasPattern(text, "(FADE|TO:)")) return true;
+    	   text = text.trim();
+           if (hasPattern(text, "(^FADE |TO:$)")) return true;
            
            return false;
        }
@@ -238,10 +247,7 @@ public class ReadWord {
        }
        
        private boolean hasPattern(String testStr, String pattern) {
-       	if (Pattern
-       			.compile(pattern)
-       			.matcher(testStr)
-       			.find()) return true;
+       	if (Pattern.compile(pattern).matcher(testStr).find()) return true;
            
            return false;
        }
@@ -269,8 +275,8 @@ public class ReadWord {
                    typedEG = new ActionGroup();
                    break;
                default:
-               	typedE = new ScriptElement();
-                   typedEG = new ElementGroup();
+               	typedE = new General();
+                   typedEG = new GeneralGroup();
                    break;
            }
            
@@ -278,6 +284,7 @@ public class ReadWord {
         	   typedE.addTextRun(tr);
            }
            
+           typedE.setAlignment(genericE.getAlignment());
            typedEG.addMember(typedE);
            return typedEG;
        }
@@ -294,6 +301,7 @@ public class ReadWord {
     	   
     	   sHeading.accept(new CharFilterVisitor());
     	   
+    	   sHeading.setAlignment(genericE.getAlignment());
     	   sHeadingGroup.addMember(sHeading);
     	   return sHeadingGroup;
        }

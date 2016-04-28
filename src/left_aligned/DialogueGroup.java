@@ -4,6 +4,6 @@ class DialogueGroup extends ElementGroup {
 	
 	public DialogueGroup(ScriptElement... elements) {
 		super(elements);
-		type = "Element Group";
+		type = "Dialogue Group";
 	}
 }

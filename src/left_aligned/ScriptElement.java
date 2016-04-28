@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class ScriptElement implements IScriptElement<Text> {
 	public String type;	
+	public String alignment;
     private ArrayList<Text> textRuns;
     
     public ScriptElement(Text... textRuns) {
@@ -19,6 +20,12 @@ public class ScriptElement implements IScriptElement<Text> {
     	textRun.setParent(this);
     	
         textRuns.add(textRun);
+    }
+    
+    public void addAllTextRuns(ArrayList<Text> runs) {
+    	for (Text run : runs) {
+    		addTextRun(run);
+    	}
     }
     
     // Attempts to normalize/merge with last extant run; 
@@ -54,13 +61,25 @@ public class ScriptElement implements IScriptElement<Text> {
     }
     
     public String getTextContent() {
+    	return getTextContent(true);
+    }
+    
+    public String getTextContent(boolean addNewline) {
     	// FIXME - add 'final' bool in which case no \n
         String textContent = "";
         for (Text run : textRuns) {
             textContent += run.getTextContent();
         }
         
-        return textContent + "\n";
+        return textContent + ((addNewline) ? "\n" : "");
+    }
+    
+    public void setAlignment(String alignment) {
+    	this.alignment = alignment;
+    }
+    
+    public String getAlignment() {
+    	return alignment;
     }
     
     private boolean areAttrsEqual(Text runA, Text runB) {
@@ -72,15 +91,21 @@ public class ScriptElement implements IScriptElement<Text> {
     }
     
     public void trimTextContent() {
+    	removeNewlines();
     	if (textRuns.size() != 0) trimTextContent(true);
   	
     	removeEmpties();
     }
     
+    public void removeNewlines() {
+    	for (Text t : textRuns) {
+    		t.removeNewline();
+    	}
+    }
+    
     private void trimTextContent(boolean atFront) {
     	int idx = atFront ? 0 : textRuns.size() - 1;
-    	Text theRun = textRuns.get(idx);  	
-    	
+    	Text theRun = textRuns.get(idx);  		
     	
     	if (atFront) {
     		if (theRun.getTextContent().trim().length() == 0) {

@@ -4,6 +4,7 @@ package left_aligned;
 
 import java.util.ArrayList;
 
+import com.google.gson.Gson;
 
 public class ScriptDocument implements IElementGroup<SceneGroup> {
 	public String type;
@@ -46,6 +47,52 @@ public class ScriptDocument implements IElementGroup<SceneGroup> {
 		}
 		
 		return textContent;
+	}
+	
+	public ElementGroup createElementGroup(String type) {
+		switch (type) {
+			case "Character":
+			case "Dialogue":
+			case "Parenthetical":
+				return new DialogueGroup();
+			case "Action":
+				return new ActionGroup();
+			case "General":
+				return new GeneralGroup();
+			case "Scene Heading":
+				return new SceneHeadingGroup();
+			case "Transition":
+				return new TransitionGroup();
+			case "Shot":
+				return new ShotGroup();
+			default:
+				return null;
+		
+		}
+	}
+	
+	public ScriptElement createElement(String type) {
+		switch (type) {
+			case "Character":
+				return new CharacterName();
+			case "Dialogue":
+				return new Dialogue();
+			case "Parenthetical":
+				return new Parenthetical();
+			case "Action":
+				return new Action();
+			case "General":
+				return new General();
+			case "Scene Heading":
+				return new SceneHeading();
+			case "Transition":
+				return new Transition();
+			case "Shot":
+				return new Shot();
+			default:
+				return null;
+	
+		}
 	}
 	
 	public void accept(ISceneGroupVisitor visitor) {
@@ -109,6 +156,25 @@ public class ScriptDocument implements IElementGroup<SceneGroup> {
 			}	
 		});
 	}
+	
+	public String toJson() {
+		class BagOfPrimitives {
+			  private int value1 = 1;
+			  private String value2 = "abc";
+			  private transient int value3 = 3;
+			  BagOfPrimitives() {
+			    // no-args constructor
+			  }
+			}
+
+			// Serialization
+			BagOfPrimitives obj = new BagOfPrimitives();
+			Gson gson = new Gson();
+			String json = gson.toJson(obj);  
+        System.out.println("Gson: "+json); // FIXME
+        
+        return json;
+    }
 }
 
 

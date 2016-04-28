@@ -32,6 +32,15 @@ public class ElementGroup implements IElementGroup<ScriptElement> {
         return members;
     }
     
+    public ArrayList<Text> getTextRuns() {
+    	ArrayList<Text> retVal = new ArrayList<Text>();
+    	for (ScriptElement sElem: members) {
+    		retVal.addAll(sElem.getTextRuns());
+    	}
+    	
+    	return retVal;
+    }
+    
     public String getTextContent() {
         if (members.size() == 0) return null;
         String textContent = "";
@@ -51,12 +60,6 @@ public class ElementGroup implements IElementGroup<ScriptElement> {
 		}
 	}
     
-    public void accept(IElementVisitor visitor) {
-		for (ScriptElement elem: members) {
-			elem.accept(visitor);
-		}
-	}
-    
     public void accept(IElementGroupVisitor visitor) {
     	visitor.visit(this);
     	for (ScriptElement elem: members) {
@@ -64,6 +67,18 @@ public class ElementGroup implements IElementGroup<ScriptElement> {
 		}
     }
     
+    public void accept(IElementVisitor visitor) {
+		for (ScriptElement elem: members) {
+			elem.accept(visitor);
+		}
+	}   
+    
+    public void accept(ITextVisitor visitor) {
+    	for (ScriptElement elem: members) {
+			elem.accept(visitor);
+		}
+    }
+   
     public void trimTextContent() {
 		accept(new SceneGroupVisitor() {
 			public void visit(ScriptElement elem) {
@@ -75,6 +90,17 @@ public class ElementGroup implements IElementGroup<ScriptElement> {
 	}
 	
 	public void removeEmpties() {
+    	ArrayList<ScriptElement> toRemove = new ArrayList<ScriptElement>();
+		for (ScriptElement elem: members) {
+			if (elem.getTextContent().trim().length() == 0) {
+				toRemove.add(elem);
+			}
+		}
+		
+		for (ScriptElement removable : toRemove) {
+			removeMember(removable);
+		}
+		
 		accept(new SceneGroupVisitor() {
 			public void visit(ScriptElement elem) {
 				elem.removeEmpties();

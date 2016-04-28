@@ -2,10 +2,7 @@ package left_aligned_tests;
 
 import static org.junit.Assert.assertEquals;
 
-import java.sql.Types;
 import java.util.ArrayList;
-
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
 
 import left_aligned.IElementVisitor;
 import left_aligned.ReadWord;
@@ -149,7 +146,7 @@ public class LeftAlignedTests {
 			}
 		}
 		
-		ScriptDocument sd = new ReadWord(makeWordDocument(textStyleTupleArray(sources))).document;
+		ScriptDocument sd = new ReadWord(makeWordDocument(textStyleTupleArray(sources))).getScriptDocument();
 		TestingVisitor tv = new TestingVisitor();
 		sd.accept(tv);
 		

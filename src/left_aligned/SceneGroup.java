@@ -114,6 +114,12 @@ public class SceneGroup implements IElementGroup<ElementGroup> {
 		}
 	}
 	
+	public void accept(ITextVisitor visitor) {
+		for (ElementGroup eGroup: members) {
+			eGroup.accept(visitor);
+		}
+	}
+	
 	public void trimTextContent() {
 		accept(new SceneGroupVisitor() {
 			public void visit(ScriptElement elem) {
@@ -131,10 +137,16 @@ public class SceneGroup implements IElementGroup<ElementGroup> {
 			}
 		});
 		
+		ArrayList<ElementGroup> removables = new ArrayList<ElementGroup>();
 		for (ElementGroup eGroup : this.getMembers()) {
-			if (eGroup.getTextContent().length() == 0) {
-				removeMember(eGroup);
+			if (eGroup.getTextContent() == null 
+					|| eGroup.getTextContent().length() == 0) {
+				removables.add(eGroup);
 			}
+		}
+		
+		for (ElementGroup removable : removables) {
+			removeMember(removable);
 		}
 	}
 	
